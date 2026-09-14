@@ -1,0 +1,139 @@
+### test_2var_single.txt
+Number of variables: 2
+K-Map:
+0 0
+0 1
+
+Minterms with 1: [3]
+
+Candidate implicants generated: 1
+Number of minimum solutions: 1
+
+Minimum Boolean Expressions:
+1. F = ab
+
+
+### test_2var_allones.txt
+Number of variables: 2
+K-Map:
+1 1
+1 1
+
+Minterms with 1: [0, 1, 2, 3]
+
+Minimum Boolean expression:
+F = 1
+
+
+### test_3var_pair.txt
+Number of variables: 3
+K-Map:
+0 1 1 0
+0 0 0 0
+
+Minterms with 1: [1, 3]
+
+Candidate implicants generated: 3
+Number of minimum solutions: 1
+
+Minimum Boolean Expressions:
+1. F = a'c
+
+
+### test_3var_wrap.txt
+Number of variables: 3
+K-Map:
+1 0 0 1
+0 0 0 0
+
+Minterms with 1: [0, 2]
+
+Candidate implicants generated: 3
+Number of minimum solutions: 1
+
+Minimum Boolean Expressions:
+1. F = a'c'
+
+
+### test_4var_single.txt
+Number of variables: 4
+K-Map:
+0 0 0 0
+0 0 0 0
+0 0 1 0
+0 0 0 0
+
+Minterms with 1: [15]
+
+Candidate implicants generated: 1
+Number of minimum solutions: 1
+
+Minimum Boolean Expressions:
+1. F = abcd
+
+
+### test_4var_allones.txt
+Number of variables: 4
+K-Map:
+1 1 1 1
+1 1 1 1
+1 1 1 1
+1 1 1 1
+
+Minterms with 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+
+Minimum Boolean expression:
+F = 1
+
+
+### test_4var_wrap.txt
+Number of variables: 4
+K-Map:
+1 0 0 1
+1 0 0 1
+0 0 0 0
+0 0 0 0
+
+Minterms with 1: [0, 2, 4, 6]
+
+Candidate implicants generated: 9
+Number of minimum solutions: 1
+
+Minimum Boolean Expressions:
+1. F = a'd'
+
+
+### test_4var_multiple.txt
+Number of variables: 4
+K-Map:
+0 0 1 1
+0 1 0 1
+0 1 1 1
+1 1 0 0
+
+Minterms with 1: [2, 3, 5, 6, 8, 9, 13, 14, 15]
+
+Candidate implicants generated: 17
+Number of minimum solutions: 3
+
+Minimum Boolean Expressions:
+1. F = abc + bc'd + a'b'c + a'cd' + ab'c'
+2. F = abc + bc'd + bcd' + a'b'c + ab'c'
+3. F = abd + bc'd + bcd' + a'b'c + ab'c'
+
+
+### test_4var_dontcare.txt
+Number of variables: 4
+K-Map:
+1 X 0 0
+0 X 0 0
+0 0 0 0
+0 0 0 0
+
+Minterms with 1: [0]
+
+Candidate implicants generated: 2
+Number of minimum solutions: 1
+
+Minimum Boolean Expressions:
+1. F = a'b'c'
