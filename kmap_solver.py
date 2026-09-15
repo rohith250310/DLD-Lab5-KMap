@@ -1,158 +1,191 @@
+from itertools import combinations          # Used to select different groups
 
-from itertools import product          # Imports product() to generate all possible group selections.
-
-V = "abcd"                             # Names of the four Boolean variables.
-GRAY = [0, 1, 3, 2]                    # Gray-code order: 00, 01, 11, 10.
-
-
-# Read the K-map from the input file.
-def read_map(file):                    # Function to read the K-map file.
-    lines = open(file).read().splitlines()  # Reads the complete file line by line.
-    lines = [x for x in lines if x.strip()] # Removes empty lines.
-
-    if lines[0].isdigit():             # Checks whether the first line contains number of variables.
-        n = int(lines[0])              # Converts the variable count from text to integer.
-        lines = lines[1:]              # Removes the variable-count line.
-    else:
-        n = 4                          # Assumes four variables if no number is given.
-
-    mp = [x.replace(",", " ").split() for x in lines] # Converts input into a 2D K-map list.
-    return n, mp                        # Returns number of variables and K-map.
+variables = "abcd"                           # Variable names
+gray = [0, 1, 3, 2]                          # Gray-code order
 
 
-# Convert K-map position into a minterm.
-def minterm(n, r, c):                  # Function to calculate minterm from row and column.
-    if n == 4:                         # Handles the four-variable K-map.
-        return GRAY[r] * 4 + GRAY[c]   # Uses Gray-code row and column to calculate minterm.
-    return 0                           # Placeholder for other variable counts.
+def read_map():
+    # Read all lines from input.txt
+    lines = [line.split() for line in open("input.txt") if line.strip()]
+
+    # First line contains number of variables
+    n = int(lines[0][0])
+
+    # Remaining lines contain the K-map
+    return n, lines[1:]
 
 
-# Generate all possible valid groups.
-def groups(mp):                        # Function to find K-map groups.
-    R, C = len(mp), len(mp[0])         # Gets number of rows and columns.
-    ans = set()                        # Stores unique valid groups.
+def get_minterm(n, row, col):
+    # 2 variables: rows and columns are normal binary order
+    if n == 2:
+        return row * 2 + col
 
-    for h in [1, 2, 4]:                # Tries possible group heights.
-        for w in [1, 2, 4]:            # Tries possible group widths.
+    # 3 variables: columns use Gray-code order
+    if n == 3:
+        return row * 4 + gray[col]
 
-            if h > R or w > C:         # Checks if the group is larger than the K-map.
-                continue               # Skips that group size.
-
-            for r in range(R):         # Tries every possible starting row.
-                for c in range(C):     # Tries every possible starting column.
-
-                    cells = frozenset( # Creates the cells belonging to this group.
-                        (
-                            (r + i) % R, # % allows wrapping from bottom to top.
-                            (c + j) % C  # % allows wrapping from right to left.
-                        )
-                        for i in range(h) # Selects required rows.
-                        for j in range(w) # Selects required columns.
-                    )
-
-                    if all(             # Checks whether every cell can be grouped.
-                        mp[x][y].lower() in ("1", "x") # Group can contain 1 or don't-care X.
-                        for x, y in cells # Checks every cell in the group.
-                    ):
-                        ones = frozenset( # Stores only actual 1-minterms.
-                            minterm(4, x, y) # Converts each cell into a minterm.
-                            for x, y in cells # Goes through every cell.
-                            if mp[x][y] == "1" # Ignores X because X is not required to be covered.
-                        )
-
-                        if ones:        # Checks whether the group contains at least one 1.
-                            ans.add((cells, ones)) # Saves the valid group.
-
-    return list(ans)                    # Returns all valid groups.
+    # 4 variables: both rows and columns use Gray-code order
+    return gray[row] * 4 + gray[col]
 
 
-# Convert a group into a Boolean product term.
-def make_term(cells):                   # Function to create a Boolean expression from a group.
-    bits = [f"{minterm(4, r, c):04b}" for r, c in cells] # Converts minterms into 4-bit binary.
-    term = ""                           # Starts with an empty Boolean term.
+def find_groups(n, kmap):
+    rows = len(kmap)
+    cols = len(kmap[0])
+    all_groups = []
 
-    for i in range(4):                  # Checks variables a, b, c and d.
-        values = {b[i] for b in bits}   # Gets all values of the current variable.
+    # Try every possible group size
+    for height in [1, 2, 4]:
+        for width in [1, 2, 4]:
 
-        if len(values) == 1:            # Variable is constant throughout the group.
-            term += V[i] if "1" in values else V[i] + "'" # 1 gives normal variable; 0 gives complement.
+            if height > rows or width > cols:
+                continue
 
-    return term or "1"                  # Returns the term, or 1 if all variables change.
+            # Try starting from every K-map cell
+            for start_row in range(rows):
+                for start_col in range(cols):
 
+                    cells = []
 
-# Find all minimum Boolean expressions.
-def solve(mp):                          # Function that finds the final minimized expressions.
+                    # Create the rectangular group
+                    for i in range(height):
+                        for j in range(width):
+                            row = (start_row + i) % rows
+                            col = (start_col + j) % cols
+                            cells.append((row, col))
 
-    need = {                            # Creates the set of minterms that must be covered.
-        minterm(4, r, c)                # Converts every 1-cell into its minterm.
-        for r in range(4)               # Goes through all rows.
-        for c in range(4)               # Goes through all columns.
-        if mp[r][c] == "1"              # Selects only cells containing 1.
-    }
+                    # Group is valid if it contains only 1 or X
+                    valid = True
+                    for row, col in cells:
+                        if kmap[row][col].lower() not in ["1", "x"]:
+                            valid = False
 
-    gs = groups(mp)                     # Generates all valid K-map groups.
+                    if valid:
+                        ones = []
 
-    terms = []                          # Stores Boolean terms and their covered minterms.
+                        # Store minterms containing actual 1s
+                        for row, col in cells:
+                            if kmap[row][col] == "1":
+                                ones.append(get_minterm(n, row, col))
 
-    for cells, ones in gs:              # Processes every valid group.
-        terms.append((make_term(cells), ones)) # Converts the group to a term and stores its minterms.
+                        if ones:
+                            group = (tuple(sorted(cells)), tuple(sorted(ones)))
 
-    best = None                         # Stores the best solution found so far.
-    answers = set()                     # Stores all equally minimum solutions.
+                            if group not in all_groups:
+                                all_groups.append(group)
 
-    # Try every possible selection of groups.
-    for size in range(1, len(terms) + 1): # Starts by trying one group, then two, three, etc.
-        for chosen in product([0, 1], repeat=len(terms)): # Generates every possible selection of groups.
-
-            if sum(chosen) != size:     # Checks whether exactly 'size' groups were selected.
-                continue                # Skips selections with the wrong number of groups.
-
-            covered = set()             # Stores minterms covered by the selected groups.
-            selected = []               # Stores Boolean terms selected.
-
-            for i in range(len(terms)): # Checks every available group.
-                if chosen[i]:           # Checks whether this group was selected.
-                    selected.append(terms[i][0]) # Adds its Boolean term.
-                    covered |= terms[i][1]      # Adds its minterms to covered set.
-
-            if covered >= need:         # Checks whether all required 1s are covered.
-
-                key = (                 # Creates a score for this solution.
-                    size,               # First priority is fewer product terms.
-                    sum(len(x.replace("'", "")) for x in selected) # Second priority is fewer literals.
-                )
-
-                if best is None or key < best: # Checks whether this is a better solution.
-                    best = key           # Saves the new best score.
-                    answers = {" + ".join(sorted(selected))} # Removes old solutions and saves this one.
-
-                elif key == best:       # Checks whether another solution has the same minimum score.
-                    answers.add(" + ".join(sorted(selected))) # Saves this additional minimum solution.
-
-        if best is not None:             # Checks whether a valid minimum solution was found.
-            break                        # Stops because larger groups of terms are not needed.
-
-    return sorted(answers)               # Returns all minimum Boolean expressions.
+    return all_groups
 
 
-# Main program.
-n, mp = read_map("input.txt")            # Reads the K-map from input.txt.
+def make_term(n, cells):
+    # Convert every cell into binary
+    binary = []
 
-print("K-Map:")                           # Prints the K-map heading.
+    for row, col in cells:
+        number = get_minterm(n, row, col)
+        binary.append(format(number, "0" + str(n) + "b"))
 
-for row in mp:                           # Goes through every row.
-    print(" ".join(row))                 # Prints each row neatly.
+    term = ""
 
-print("\nMinterms:", sorted(             # Prints the minterms where K-map contains 1.
-    minterm(4, r, c)                     # Converts each 1-cell to a minterm.
-    for r in range(4)                    # Goes through rows.
-    for c in range(4)                    # Goes through columns.
-    if mp[r][c] == "1"                   # Selects only 1-cells.
-))
+    # Check each variable
+    for i in range(n):
+        values = []
 
-print("\nMinimum Boolean Expressions:")   # Prints the final output heading.
+        for number in binary:
+            if number[i] not in values:
+                values.append(number[i])
 
-for i, answer in enumerate(solve(mp), 1): # Gets every minimum solution and numbers it.
-    print(i, "F =", answer)              # Prints each minimized Boolean expression.
+        # Variable is constant in this group
+        if len(values) == 1:
+            if values[0] == "1":
+                term += variables[i]
+            else:
+                term += variables[i] + "'"
+
+    return term if term else "1"
 
 
+def solve(n, kmap):
+    # Find all required minterms
+    required = []
+
+    for row in range(len(kmap)):
+        for col in range(len(kmap[0])):
+            if kmap[row][col] == "1":
+                required.append(get_minterm(n, row, col))
+
+    # Generate all possible groups
+    groups = find_groups(n, kmap)
+
+    terms = []
+
+    # Convert groups into Boolean terms
+    for cells, ones in groups:
+        expression = make_term(n, cells)
+        terms.append((expression, ones))
+
+    best = None
+    answers = []
+
+    # Try solutions with 1 group, 2 groups, 3 groups, ...
+    for number_of_groups in range(1, len(terms) + 1):
+
+        for selected in combinations(terms, number_of_groups):
+
+            covered = []
+
+            # Find all minterms covered by selected groups
+            for term, ones in selected:
+                for value in ones:
+                    if value not in covered:
+                        covered.append(value)
+
+            # Check whether every 1 is covered
+            if all(value in covered for value in required):
+
+                literal_count = 0
+
+                for term, ones in selected:
+                    literal_count += len(term.replace("'", ""))
+
+                score = (number_of_groups, literal_count)
+                expression = " + ".join(sorted(term for term, ones in selected))
+
+                if best is None or score < best:
+                    best = score
+                    answers = [expression]
+
+                elif score == best and expression not in answers:
+                    answers.append(expression)
+
+        # Once the minimum number of groups is found, stop
+        if best is not None:
+            break
+
+    return sorted(answers)
+
+
+# ---------- Main program ----------
+
+n, kmap = read_map()                         # Read input
+
+print("K-Map:")
+for row in kmap:
+    print(" ".join(row))
+
+# Display the minterms
+minterms = []
+
+for row in range(len(kmap)):
+    for col in range(len(kmap[0])):
+        if kmap[row][col] == "1":
+            minterms.append(get_minterm(n, row, col))
+
+print("\nMinterms:", sorted(minterms))
+
+# Find and display minimum expressions
+print("\nMinimum Boolean Expressions:")
+
+answers = solve(n, kmap)
+
+for number, answer in enumerate(answers, 1):
+    print(number, "F =", answer)
